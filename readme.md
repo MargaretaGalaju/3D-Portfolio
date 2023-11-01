@@ -1,4 +1,5 @@
-# Three.js Journey
+# Three.js Portfolio
+Live url: https://portfolio-margaretagalajus-projects.vercel.app/
 
 ## Setup
 Download [Node.js](https://nodejs.org/en/download/).
