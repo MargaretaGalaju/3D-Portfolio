@@ -1,17 +1,37 @@
 import * as THREE from "three";
-import * as dat from "lil-gui";
+// import * as dat from "lil-gui";
 import gsap from "gsap";
+import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
+import { FBXLoader } from "three/examples/jsm/loaders/FBXLoader.js";
 
 THREE.ColorManagement.enabled = false;
 
-/**
- * Debug
- */
-const gui = new dat.GUI();
+const manager = new THREE.LoadingManager();
+const objLoader = new OBJLoader(manager);
+const fbxLoader = new FBXLoader(manager);
 
-const parameters = {
-  materialColor: "#d68585",
-};
+let mesh1;
+let mesh2;
+let mesh3;
+
+let sectionMeshes = [];
+let objectsDistance = 4;
+let flyingStar;
+
+let starPositions = [
+  new THREE.Vector3(-3, -0, 0),
+  new THREE.Vector3(3, -4, 0),
+  new THREE.Vector3(-3, -8, 0),
+];
+
+
+// Create the particle system
+let particleCount;
+let particles;
+let particlePositions;
+let particleMaterial;
+let particleSystem;
+
 
 /**
  * Base
@@ -28,31 +48,130 @@ const particleTexture = textureLoader.load("/textures/particles/8.png");
 
 const gradientTexture = textureLoader.load("textures/gradients/3.jpg");
 gradientTexture.magFilter = THREE.NearestFilter;
-/**
- * Objects
- */
-// Material
+
+const parameters = {
+  materialColor: "#d68585",
+};
+
 const material = new THREE.MeshToonMaterial({
   color: parameters.materialColor,
   gradientMap: gradientTexture,
 });
 
-// Meshes
-const mesh1 = new THREE.Mesh(new THREE.TorusGeometry(1, 0.4, 16, 60), material);
-const mesh2 = new THREE.Mesh(new THREE.ConeGeometry(1, 2, 32), material);
-const mesh3 = new THREE.Mesh(new THREE.TorusKnotGeometry(0.8, 0.35, 100, 16), material);
+objLoader.load(
+  '/saturn.obj',
+  function (object) {
+    object.traverse(function (child) {
+      if (child instanceof THREE.Mesh) {
+        child.material = material;
+      }
+    });
+    // Meshes
+    object.scale.set(0.04, 0.04, 0.04)
+    mesh1 = object;
+  },
+);
 
-scene.add(mesh1, mesh2, mesh3);
-const objectsDistance = 4;
+fbxLoader.load(
+  '/rocket.fbx',
+  function (object) {
 
-mesh1.position.y = -objectsDistance * 0;
-mesh2.position.y = -objectsDistance * 1;
-mesh3.position.y = -objectsDistance * 2;
+    object.traverse(function (child) {
+      if (child instanceof THREE.PointLight) {
+        child.visible = false
+      }
 
-mesh1.position.x = 2;
-mesh2.position.x = -2;
-mesh3.position.x = 2;
-const sectionMeshes = [mesh1, mesh2, mesh3];
+      if (child instanceof THREE.Mesh) {
+        child.material = material;
+        child.geometry.center();
+      }
+    });
+
+    object.scale.set(0.005, 0.005, 0.005)
+
+    mesh2 = object;
+  },
+);
+
+fbxLoader.load(
+  '/star.fbx',
+  function (object) {
+    object.traverse(function (child) {
+      if (child instanceof THREE.PointLight) {
+        child.visible = false
+      }
+
+      if (child instanceof THREE.Mesh) {
+        child.material = material;
+
+        if (child.name === 'Plane') {
+          child.visible = false
+        }
+      }
+    });
+
+    flyingStar = object.clone()
+
+    flyingStar.scale.set(0.002, 0.002, 0.002)
+
+    scene.add(flyingStar)
+    flyingStar.position.set(starPositions[0].x, starPositions[0].y, starPositions[0].z);
+
+
+    // Create the particle system
+    particleCount = 40;
+    particles = new THREE.BufferGeometry();
+    particlePositions = new Float32Array(particleCount * 3); // Each particle has an x, y, z position
+
+    for (let i = 0; i < particleCount; i++) {
+      particlePositions[i * 3] = flyingStar.position.x * 10;
+      particlePositions[i * 3 + 1] = flyingStar.position.y * 10;
+      particlePositions[i * 3 + 2] = flyingStar.position.z * 10;
+    }
+
+    particles.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+
+    particleMaterial = new THREE.PointsMaterial({
+      color: parameters.materialColor,
+      size: 0.2,
+      sizeAttenuation: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    });
+
+    particleMaterial.alphaMap = particleTexture;
+    particleMaterial.transparent = true;
+
+
+    particleSystem = new THREE.Points(particles, particleMaterial);
+    scene.add(particleSystem);
+  },
+);
+
+manager.onLoad = function () {
+  mesh3 = new THREE.Mesh(new THREE.TorusKnotGeometry(0.8, 0.35, 100, 16), material);
+
+  scene.add(mesh1, mesh2, mesh3);
+
+  const targetPosition = new THREE.Vector3(0, .5, 0);
+  mesh1.lookAt(targetPosition);
+
+  mesh1.position.y = -objectsDistance * 0;
+  mesh2.position.y = -objectsDistance * 1;
+  mesh3.position.y = -objectsDistance * 2;
+
+  mesh1.position.x = 2;
+  mesh2.position.x = -2;
+  mesh3.position.x = 2;
+  sectionMeshes = [mesh1, mesh2, mesh3];
+};
+
+
+/**
+ * Objects
+ */
+// Material
+
 
 //Particles
 const settings = {
@@ -75,7 +194,8 @@ const drawParticles = () => {
   for (let i = 0; i <= settings.count; i++) {
     const [x, y, z] = [i * 3, i * 3 + 1, i * 3 + 2];
     positions[x] = (Math.random() - 0.5) * 10;
-    positions[y] = objectsDistance * 0.5 - Math.random() * objectsDistance * sectionMeshes.length;
+    // sectionMeshes.length = 3
+    positions[y] = objectsDistance * 0.5 - Math.random() * objectsDistance * 3;
     positions[z] = (Math.random() - 0.5) * 10;
   }
 
@@ -94,9 +214,8 @@ const drawParticles = () => {
   points = new THREE.Points(particlesGeometry, particlesMaterial);
   scene.add(points);
 };
-drawParticles();
 
-gui.add(settings, "count").min(1000).max(300000).step(1000).onFinishChange(drawParticles);
+drawParticles();
 
 /**
  * Lights
@@ -113,26 +232,6 @@ const sizes = {
   height: window.innerHeight,
 };
 
-gui.addColor(parameters, "materialColor").onChange(() => {
-  material.color.set(parameters.materialColor);
-  if (particlesMaterial) {
-    particlesMaterial.color.set(parameters.materialColor);
-  }
-});
-
-window.addEventListener("resize", () => {
-  // Update sizes
-  sizes.width = window.innerWidth;
-  sizes.height = window.innerHeight;
-
-  // Update camera
-  camera.aspect = sizes.width / sizes.height;
-  camera.updateProjectionMatrix();
-
-  // Update renderer
-  renderer.setSize(sizes.width, sizes.height);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-});
 
 /**
  * Camera
@@ -161,24 +260,41 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
  * Scroll
  */
 let scrollY = window.scrollY;
-let currentSection = 0
+let currentSection = 0;
 
-window.addEventListener("scroll", () => {
-  scrollY = window.scrollY;
-
-  const newSection = Math.round(scrollY / sizes.height);
-	
-  if (newSection != currentSection) {
-		currentSection = newSection
-
-    gsap.to(sectionMeshes[currentSection].rotation, {
-      duration: 1.5,
-      ease: "power2.inOut",
-      x: "+=6",
-      y: "+=3",
-    });
+function updateParticlePositions() {
+  if (!particleSystem) {
+    return;
   }
-});
+
+  const positions = particleSystem.geometry.attributes.position.array;
+
+  for (let i = particleCount - 1; i > 0; i--) {
+    positions[i * 3] = positions[(i - 1) * 3];
+    positions[i * 3 + 1] = positions[(i - 1) * 3 + 1];
+    positions[i * 3 + 2] = positions[(i - 1) * 3 + 2];
+  }
+
+  console.log(positions);
+  positions[0] = flyingStar.position.x;
+  positions[1] = flyingStar.position.y;
+  positions[2] = flyingStar.position.z;
+
+  particleSystem.geometry.attributes.position.needsUpdate = true;
+}
+
+
+function animateStarTo(position) {
+  gsap.to(flyingStar.position, {
+    duration: 1,
+    x: position.x,
+    y: position.y,
+    z: position.z,
+    onUpdate: updateParticlePositions,
+    onComplete: updateParticlePositions, // Ensure particles are updated at the end of the animation
+  });
+}
+
 
 /**
  * Cursor
@@ -191,13 +307,16 @@ window.addEventListener("mousemove", (event) => {
   cursor.x = event.clientX / sizes.width - 0.5;
   cursor.y = event.clientY / sizes.height - 0.5;
 });
-/**
- * Animate
- */
+
+
+
 const clock = new THREE.Clock();
 let previousTime = 0;
 
+
 const tick = () => {
+  updateParticlePositions();
+
   const elapsedTime = clock.getElapsedTime();
   const deltaTime = elapsedTime - previousTime;
   previousTime = elapsedTime;
@@ -209,16 +328,39 @@ const tick = () => {
   cameraGroup.position.x += deltaTime * (parallaxX - cameraGroup.position.x) * 5;
   cameraGroup.position.y += deltaTime * (parallaxY - cameraGroup.position.y) * 5;
 
-  // Animate meshes
-  for (const mesh of sectionMeshes) {
-    mesh.rotation.x += deltaTime * 0.1;
-    mesh.rotation.y += deltaTime * 0.12;
+  if (sectionMeshes?.length) {
+    // Animate meshes
+    for (const mesh of sectionMeshes) {
+      mesh.rotation.x += deltaTime * 0.1;
+      mesh.rotation.y += deltaTime * 0.12;
+      mesh.rotation.z += deltaTime * 0.12;
+    }
   }
 
-  // Render
-  renderer.render(scene, camera);
+  // Move as 8 the rocket
+  // if (flyingStar) {
+  //   angle += speed * 0.02;
 
-  // Call tick again on the next frame
+  //   const scale = 5; // Adjust this to control the size of the figure-eight
+  //   const y = scale * (Math.sin(angle) / (1 + Math.cos(angle) * Math.cos(angle)));
+  //   const x = scale * (Math.sin(angle) * Math.cos(angle) / (1 + Math.cos(angle) * Math.cos(angle)));
+
+  //   // Calculate the direction vector of the movement
+  //   const dy = scale * ((Math.cos(angle) * (1 + Math.cos(angle) * Math.cos(angle)) - Math.sin(angle) * (-2 * Math.cos(angle) * Math.sin(angle))) / Math.pow(1 + Math.cos(angle) * Math.cos(angle), 2));
+  //   const dx = scale * ((Math.cos(2 * angle) * (1 + Math.cos(angle) * Math.cos(angle)) - Math.sin(angle) * Math.sin(angle)) / Math.pow(1 + Math.cos(angle) * Math.cos(angle), 2));
+  //   const direction = new THREE.Vector3(dx, dy, 0).normalize();
+
+  //   // Set the rocket's position
+  //   flyingStar.position.set(x, y, 0);
+
+  //   // Calculate the quaternion rotation for the rocket to look in the direction of movement
+  //   const quaternion = new THREE.Quaternion();
+  //   quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction);
+  //   flyingStar.quaternion.copy(quaternion);
+  // }
+
+
+  renderer.render(scene, camera);
   window.requestAnimationFrame(tick);
 };
 
@@ -269,11 +411,11 @@ const generateGalaxy = () => {
     const radius = Math.random() * parametersGalaxy.radius;
     const spinAngle = radius * parametersGalaxy.spin;
     const angle = ((i % parametersGalaxy.branches) / parametersGalaxy.branches) * Math.PI * 2;
-    
+
     const randomX = Math.pow(Math.random(), parametersGalaxy.randomnessPower) * (Math.random() < 0.5 ? 1 : -1) * parametersGalaxy.randomness * radius;
     const randomY = Math.pow(Math.random(), parametersGalaxy.randomnessPower) * (Math.random() < 0.5 ? 1 : -1) * parametersGalaxy.randomness * radius;
     const randomZ = Math.pow(Math.random(), parametersGalaxy.randomnessPower) * (Math.random() < 0.5 ? 1 : -1) * parametersGalaxy.randomness * radius;
-   
+
     positions[x] = randomX + Math.cos(angle + spinAngle) * radius;
     positions[z] = randomZ + Math.sin(angle + spinAngle) * radius;
     positions[y] = randomY + 0;
@@ -297,7 +439,7 @@ const generateGalaxy = () => {
     depthWrite: false,
     blending: THREE.AdditiveBlending,
     vertexColors: true,
-		alphaMap: particleTexture
+    alphaMap: particleTexture
   });
   particlesMaterial.transparent = true;
   /**
@@ -309,12 +451,36 @@ const generateGalaxy = () => {
 
 generateGalaxy();
 
-gui.add(parametersGalaxy, "count").min(1000).max(1000000).step(1000).onFinishChange(generateGalaxy);
-gui.add(parametersGalaxy, "size").min(0.0001).max(0.1).step(0.0001).onFinishChange(generateGalaxy);
-gui.add(parametersGalaxy, "radius").min(0.01).max(20).step(0.01).onFinishChange(generateGalaxy);
-gui.add(parametersGalaxy, "branches").min(1).max(10).step(1).onFinishChange(generateGalaxy);
-gui.add(parametersGalaxy, "spin").min(-5).max(5).step(0.001).onFinishChange(generateGalaxy);
-gui.add(parametersGalaxy, "randomness").min(0).max(2).step(0.001).onFinishChange(generateGalaxy);
-gui.add(parametersGalaxy, "randomnessPower").min(1).max(10).step(0.001).onFinishChange(generateGalaxy);
-gui.addColor(parametersGalaxy, "insideColor").onFinishChange(generateGalaxy);
-gui.addColor(parametersGalaxy, "outsideColor").onFinishChange(generateGalaxy);
+
+window.addEventListener("scroll", () => {
+  scrollY = window.scrollY;
+
+  const newSection = Math.round(scrollY / sizes.height);
+
+  if (newSection != currentSection) {
+    currentSection = newSection
+    animateStarTo(starPositions[currentSection]);
+
+    gsap.to(sectionMeshes[currentSection].rotation, {
+      duration: 1.5,
+      ease: "power2.inOut",
+      x: "+=6",
+      y: "+=3",
+    });
+  }
+});
+
+
+window.addEventListener("resize", () => {
+  // Update sizes
+  sizes.width = window.innerWidth;
+  sizes.height = window.innerHeight;
+
+  // Update camera
+  camera.aspect = sizes.width / sizes.height;
+  camera.updateProjectionMatrix();
+
+  // Update renderer
+  renderer.setSize(sizes.width, sizes.height);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+});

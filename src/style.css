@@ -1,14 +1,13 @@
-*
-{
+* {
     margin: 0;
     padding: 0;
 }
-html
-{
+
+html {
     background: #1e1a20;
 }
-.webgl
-{
+
+.webgl {
     position: fixed;
     top: 0;
     left: 0;
@@ -20,8 +19,7 @@ html
     text-align: center;
 }
 
-.section
-{
+.section {
     display: flex;
     align-items: center;
     height: 100vh;
@@ -32,6 +30,7 @@ html
     font-size: 7vmin;
     padding-left: 10%;
     padding-right: 10%;
+    text-align: center;
 }
 
 .section .clickable {
@@ -42,7 +41,6 @@ html
     color: #d68585;
 }
 
-section:nth-child(odd)
-{
+section:nth-child(odd) {
     justify-content: flex-end;
 }
