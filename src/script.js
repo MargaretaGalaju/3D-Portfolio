@@ -1,8 +1,7 @@
-import * as THREE from "three";
-// import * as dat from "lil-gui";
-import gsap from "gsap";
+import * as THREE from 'three';
+import gsap from 'gsap';
 import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
-import { FBXLoader } from "three/examples/jsm/loaders/FBXLoader.js";
+import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
 
 THREE.ColorManagement.enabled = false;
 
@@ -33,24 +32,27 @@ let particleMaterial;
 let particleSystem;
 
 
+let scrollY = window.scrollY;
+let currentSection = 0;
+
 /**
  * Base
  */
 // Canvas
-const canvas = document.querySelector("canvas.webgl");
+const canvas = document.querySelector('canvas.webgl');
 
 // Scene
 const scene = new THREE.Scene();
 
 // Texture
 const textureLoader = new THREE.TextureLoader();
-const particleTexture = textureLoader.load("/textures/particles/8.png");
+const particleTexture = textureLoader.load('/textures/particles/8.png');
 
-const gradientTexture = textureLoader.load("textures/gradients/3.jpg");
+const gradientTexture = textureLoader.load('textures/gradients/3.jpg');
 gradientTexture.magFilter = THREE.NearestFilter;
 
 const parameters = {
-  materialColor: "#d68585",
+  materialColor: '#d68585',
 };
 
 const material = new THREE.MeshToonMaterial({
@@ -117,7 +119,6 @@ fbxLoader.load(
     scene.add(flyingStar)
     flyingStar.position.set(starPositions[0].x, starPositions[0].y, starPositions[0].z);
 
-
     // Create the particle system
     particleCount = 40;
     particles = new THREE.BufferGeometry();
@@ -167,12 +168,6 @@ manager.onLoad = function () {
 };
 
 
-/**
- * Objects
- */
-// Material
-
-
 //Particles
 const settings = {
   count: 10000,
@@ -199,7 +194,7 @@ const drawParticles = () => {
     positions[z] = (Math.random() - 0.5) * 10;
   }
 
-  particlesGeometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+  particlesGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
 
   particlesMaterial = new THREE.PointsMaterial({
     color: parameters.materialColor,
@@ -220,7 +215,7 @@ drawParticles();
 /**
  * Lights
  */
-const directionalLight = new THREE.DirectionalLight("#ffffff", 1);
+const directionalLight = new THREE.DirectionalLight('#ffffff', 1);
 directionalLight.position.set(1, 1, 0);
 scene.add(directionalLight);
 
@@ -256,11 +251,6 @@ renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
 renderer.setSize(sizes.width, sizes.height);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-/**
- * Scroll
- */
-let scrollY = window.scrollY;
-let currentSection = 0;
 
 function updateParticlePositions() {
   if (!particleSystem) {
@@ -275,7 +265,6 @@ function updateParticlePositions() {
     positions[i * 3 + 2] = positions[(i - 1) * 3 + 2];
   }
 
-  console.log(positions);
   positions[0] = flyingStar.position.x;
   positions[1] = flyingStar.position.y;
   positions[2] = flyingStar.position.z;
@@ -303,12 +292,10 @@ const cursor = {};
 cursor.x = 0;
 cursor.y = 0;
 
-window.addEventListener("mousemove", (event) => {
+window.addEventListener('mousemove', (event) => {
   cursor.x = event.clientX / sizes.width - 0.5;
   cursor.y = event.clientY / sizes.height - 0.5;
 });
-
-
 
 const clock = new THREE.Clock();
 let previousTime = 0;
@@ -329,36 +316,12 @@ const tick = () => {
   cameraGroup.position.y += deltaTime * (parallaxY - cameraGroup.position.y) * 5;
 
   if (sectionMeshes?.length) {
-    // Animate meshes
     for (const mesh of sectionMeshes) {
       mesh.rotation.x += deltaTime * 0.1;
       mesh.rotation.y += deltaTime * 0.12;
       mesh.rotation.z += deltaTime * 0.12;
     }
   }
-
-  // Move as 8 the rocket
-  // if (flyingStar) {
-  //   angle += speed * 0.02;
-
-  //   const scale = 5; // Adjust this to control the size of the figure-eight
-  //   const y = scale * (Math.sin(angle) / (1 + Math.cos(angle) * Math.cos(angle)));
-  //   const x = scale * (Math.sin(angle) * Math.cos(angle) / (1 + Math.cos(angle) * Math.cos(angle)));
-
-  //   // Calculate the direction vector of the movement
-  //   const dy = scale * ((Math.cos(angle) * (1 + Math.cos(angle) * Math.cos(angle)) - Math.sin(angle) * (-2 * Math.cos(angle) * Math.sin(angle))) / Math.pow(1 + Math.cos(angle) * Math.cos(angle), 2));
-  //   const dx = scale * ((Math.cos(2 * angle) * (1 + Math.cos(angle) * Math.cos(angle)) - Math.sin(angle) * Math.sin(angle)) / Math.pow(1 + Math.cos(angle) * Math.cos(angle), 2));
-  //   const direction = new THREE.Vector3(dx, dy, 0).normalize();
-
-  //   // Set the rocket's position
-  //   flyingStar.position.set(x, y, 0);
-
-  //   // Calculate the quaternion rotation for the rocket to look in the direction of movement
-  //   const quaternion = new THREE.Quaternion();
-  //   quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction);
-  //   flyingStar.quaternion.copy(quaternion);
-  // }
-
 
   renderer.render(scene, camera);
   window.requestAnimationFrame(tick);
@@ -379,8 +342,8 @@ parametersGalaxy.branches = 3;
 parametersGalaxy.spin = 1;
 parametersGalaxy.randomness = 0.7;
 parametersGalaxy.randomnessPower = 3;
-parametersGalaxy.insideColor = "#ff6030";
-parametersGalaxy.outsideColor = "#1b3984";
+parametersGalaxy.insideColor = '#ff6030';
+parametersGalaxy.outsideColor = '#1b3984';
 
 let geometry = null;
 let materialGalaxy = null;
@@ -428,7 +391,7 @@ const generateGalaxy = () => {
     colors[z] = mixedColor.b;
   }
 
-  geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+  geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
   geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3))
   /**
    * Material
@@ -452,7 +415,7 @@ const generateGalaxy = () => {
 generateGalaxy();
 
 
-window.addEventListener("scroll", () => {
+window.addEventListener('scroll', () => {
   scrollY = window.scrollY;
 
   const newSection = Math.round(scrollY / sizes.height);
@@ -463,15 +426,15 @@ window.addEventListener("scroll", () => {
 
     gsap.to(sectionMeshes[currentSection].rotation, {
       duration: 1.5,
-      ease: "power2.inOut",
-      x: "+=6",
-      y: "+=3",
+      ease: 'power2.inOut',
+      x: '+=6',
+      y: '+=3',
     });
   }
 });
 
 
-window.addEventListener("resize", () => {
+window.addEventListener('resize', () => {
   // Update sizes
   sizes.width = window.innerWidth;
   sizes.height = window.innerHeight;
@@ -484,3 +447,32 @@ window.addEventListener("resize", () => {
   renderer.setSize(sizes.width, sizes.height);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 });
+
+document.getElementById('aboutMe').onclick = function () {
+  const link = document.createElement('a');
+
+  link.href = 'assets/CV.pdf';
+  link.download = 'Margareta-Galaju.pdf';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  showToast('CV successfully downloaded!');
+
+};
+
+document.getElementById('contactMe').onclick = function () {
+  const win = window.open('https://www.linkedin.com/in/margareta-galaju/', '_blank');
+  win.focus();
+}
+
+function showToast(message) {
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.innerText = message;
+
+  document.body.appendChild(toast);
+
+  setTimeout(function () {
+    document.body.removeChild(toast);
+  }, 3000);
+}
